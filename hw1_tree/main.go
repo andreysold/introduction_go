@@ -10,67 +10,65 @@ type Pers struct {
 	v1 string
 	v2 string
 	v3 string
-
-	//v4 string
-	//v5 string
 }
 
-var i int
-
-func dirTree(out *os.File, path string, printFiles bool) error {
-	//graph := &Pers{v1: "└───", v2: "├───", v3: "│"}
-	//tr := map[string]int{}
-	//var i int = 0
+func helpFunc(out *os.File, path string, printFiles bool, level int) error {
 	data, err := os.ReadDir(path)
 	if err != nil {
-		panic(err.Error())
+		fmt.Errorf(err.Error())
 	}
-	for _, file := range data {
-		if file.IsDir() {
-			//if i == 0 {
-			//	out.WriteString(graph.v1 + file.Name() + "\n")
-			//	i++
-			//}
-			//fmt.Println(file.Name())
-			//i++
-			//fmt.Println(i)
-			//out.WriteString(file.Name())
-			//if err != nil {
-			//	panic(err.Error())
-			//}
-			err1 := dirTree(out, filepath.Join(path, file.Name()), printFiles)
-			if err1 != nil {
-				panic(err1.Error())
-			}
-			dir := filepath.Dir(filepath.Join(path, file.Name()))
-			fmt.Println(dir)
-			//if err2 != nil {
-			//	panic(err2.Error())
-			//}
-			//if file.Name() != "testdata" {
-			//	out.WriteString("    " + graph.v2 + file.Name() + "\n")
-			//}
-			if err1 != nil {
-				panic(err1.Error())
+	var newData []os.DirEntry
+	if printFiles {
+		newData = data
+	} else {
+		for _, file := range data {
+			if file.IsDir() {
+				newData = append(newData, file)
 			}
 		}
 	}
-	//for key, value := range tr {
-	//	fmt.Println(key, value)
-	//}
-	return nil
-
+	for i, file := range newData {
+		if file.IsDir() {
+			for j := 0; j < level; j++ {
+				//if j < level-1 && i < j {
+				//if {
+				//if i != 0 || level != 0 {
+				fmt.Print("│", j, i, level)
+				//}
+				//}
+				//fmt.Print("level with | = ", level)
+				//}
+				fmt.Print("\t")
+			}
+			if i == len(newData)-1 {
+				fmt.Print("└───")
+			} else {
+				fmt.Print("├───")
+			}
+			fmt.Println(file.Name())
+			err := helpFunc(out, filepath.Join(path, file.Name()), printFiles, level+1)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+func dirTree(out *os.File, path string, printFiles bool) error {
+	var level int = 0
+	err := helpFunc(out, path, printFiles, level)
+	return err
 }
 
 func main() {
 	out := os.Stdout
 	if !(len(os.Args) == 2 || len(os.Args) == 3) {
-		panic("usage go run main.go . [-f]")
+		fmt.Errorf("usage go run main.go . [-f]")
 	}
 	path := os.Args[1]
 	printFiles := len(os.Args) == 3 && os.Args[2] == "-f"
 	err := dirTree(out, path, printFiles)
 	if err != nil {
-		panic(err.Error())
+		fmt.Errorf(err.Error())
 	}
 }
