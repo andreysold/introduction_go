@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -58,33 +59,43 @@ var SingleHash = func(in, out chan interface{}) {
 var MultiHash = func(in, out chan interface{}) {
 
 	//wg := &sync.WaitGroup{}
-	var df string
-	var result []string
+	//var df string
+	//var result []string
+	result := make([]string, 6)
 	for i := range in {
 		//wg.Add(1)
 		//go func(i interface{}, wg *sync.WaitGroup, df string) {
 		//	defer wg.Done()
 		for th := 0; th <= 5; th++ {
 			t := DataSignerCrc32(fmt.Sprintf("%d%s", th, i))
-			df += t
+			//df += t
+			result = append(result, t)
 			fmt.Printf("%s MultiHash: crc32(th+step1)) %d %s\n", i, th, t)
+			t = ""
 		}
-		fmt.Println(df)
-		result = append(result, df)
-		df = ""
+		//fmt.Println(df)
+		//result = append(result, df)
+		//df = ""
+
 		//}(i, wg, df)
 	}
 	//wg.Wait()
 	//l := strings.Join(df, "")
 	//fmt.Println("|", l, "|")
 	//fmt.Println(strings.Join(result, " "))
-	out <- strings.Join(result, " ")
+	out <- strings.Join(result, "")
 }
 
 var CombineResults = func(in, out chan interface{}) {
-	it := <-in
-
-	t := strings.ReplaceAll(it.(string), " ", "_")
-	fmt.Println("CombineResults", t)
-	//fmt.Println(<-in)
+	//it := <-in
+	var df []string
+	for data := range in {
+		df = append(df, fmt.Sprintf("%v", data))
+	}
+	sort.Strings(df)
+	fmt.Printf("%v\n", df)
+	//for i := range df {
+	//	fmt.Println(df[i])
+	//}
+	out <- strings.Join(df, "_")
 }
