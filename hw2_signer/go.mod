@@ -1,3 +1,3 @@
-module main_test.go
+module signer_test.go
 
 go 1.18

@@ -13,10 +13,9 @@ import (
 /*
 это тест на проверку того что у нас это действительно конвейер
 неправильное поведение: накапливать результаты выполнения одной функции, а потом слать их в следующую.
-	это не похволяет запускать на конвейере бесконечные задачи
+	это не позволяет запускать на конвейере бесконечные задачи
 правильное поведение: обеспечить беспрепятственный поток
 */
-
 func TestPipeline(t *testing.T) {
 
 	var ok = true
@@ -42,14 +41,19 @@ func TestPipeline(t *testing.T) {
 	}
 	ExecutePipeline(freeFlowJobs...)
 	if !ok || recieved == 0 {
+		if recieved == 0 {
+			t.Errorf("RECIEVED")
+		}
 		t.Errorf("no value free flow - dont collect them")
 	}
 }
 
 func TestSigner(t *testing.T) {
 
-	//testExpected := "1173136728138862632818075107442090076184424490584241521304_1696913515191343735512658979631549563179965036907783101867_27225454331033649287118297354036464389062965355426795162684_29568666068035183841425683795340791879727309630931025356555_3994492081516972096677631278379039212655368881548151736_4958044192186797981418233587017209679042592862002427381542_4958044192186797981418233587017209679042592862002427381542"
-	//testResult := "NOT_SET"
+	testExpected := "1173136728138862632818075107442090076184424490584241521304_1696913515191343735512658979631549563179965036907783101867_27225454331033649287118297354036464389062965355426795162684_29568666068035183841425683795340791879727309630931025356555_3994492081516972096677631278379039212655368881548151736_4958044192186797981418233587017209679042592862002427381542_4958044192186797981418233587017209679042592862002427381542"
+	//testExpected := "27225454331033649287118297354036464389062965355426795162684_29568666068035183841425683795340791879727309630931025356555"
+
+	testResult := "NOT_SET"
 
 	// это небольшая защита от попыток не вызывать мои функции расчета
 	// я преопределяю фукции на свои которые инкрементят локальный счетчик
@@ -65,7 +69,7 @@ func TestSigner(t *testing.T) {
 		atomic.AddUint32(&OverheatLockCounter, 1)
 		for {
 			if swapped := atomic.CompareAndSwapUint32(&dataSignerOverheat, 0, 1); !swapped {
-				//fmt.Println("OverheatLock happend")
+				fmt.Println("OverheatLock happend")
 				time.Sleep(time.Second)
 			} else {
 				break
@@ -76,7 +80,7 @@ func TestSigner(t *testing.T) {
 		atomic.AddUint32(&OverheatUnlockCounter, 1)
 		for {
 			if swapped := atomic.CompareAndSwapUint32(&dataSignerOverheat, 1, 0); !swapped {
-				//fmt.Println("OverheatUnlock happend")
+				fmt.Println("OverheatUnlock happend")
 				time.Sleep(time.Second)
 			} else {
 				break
@@ -101,8 +105,8 @@ func TestSigner(t *testing.T) {
 		return dataHash
 	}
 
-	//inputData := []int{0, 1, 1, 2, 3, 5, 8}
-	inputData := []int{0, 1}
+	inputData := []int{0, 1, 1, 2, 3, 5, 8}
+	//inputData := []int{0, 2}
 
 	hashSignJobs := []job{
 		job(func(in, out chan interface{}) {
@@ -113,38 +117,38 @@ func TestSigner(t *testing.T) {
 		job(SingleHash),
 		job(MultiHash),
 		job(CombineResults),
-		//job(func(in, out chan interface{}) {
-		//dataRaw := <-in
-		//data, ok := dataRaw.(string)
-		//if !ok {
-		//	t.Error("cant convert result data to string")
-		//}
-		//testResult = data
-		//}),
+		job(func(in, out chan interface{}) {
+			dataRaw := <-in
+			data, ok := dataRaw.(string)
+			if !ok {
+				t.Error("cant convert result data to string")
+			}
+			testResult = data
+		}),
 	}
 
-	//start := time.Now()
+	start := time.Now()
 
 	ExecutePipeline(hashSignJobs...)
 
-	//end := time.Since(start)
-	//
-	//expectedTime := 3 * time.Second
+	end := time.Since(start)
 
-	//if testExpected != testResult {
-	//	t.Errorf("results not match\nGot: %v\nExpected: %v", testResult, testExpected)
-	//}
-	//
-	//if end > expectedTime {
-	//	t.Errorf("execition too long\nGot: %s\nExpected: <%s", end, time.Second*3)
-	//}
+	expectedTime := 3 * time.Second
 
-	// 8 потому что 2 в SingleHash и 6 в MultiHash
-	if int(OverheatLockCounter) != len(inputData) ||
-		int(OverheatUnlockCounter) != len(inputData) ||
-		int(DataSignerMd5Counter) != len(inputData) ||
-		int(DataSignerCrc32Counter) != len(inputData)*8 {
-		//t.Errorf("not enough hash-func calls")
+	if testExpected != testResult {
+		t.Errorf("results not match\nGot: %v\nExpected: %v", testResult, testExpected)
 	}
 
+	if end > expectedTime {
+		t.Errorf("execition too long\nGot: %s\nExpected: <%s", end, time.Second*3)
+	}
+
+	/*	// 8 потому что 2 в SingleHash и 6 в MultiHash
+		if int(OverheatLockCounter) != len(inputData) ||
+			int(OverheatUnlockCounter) != len(inputData) ||
+			int(DataSignerMd5Counter) != len(inputData) ||
+			int(DataSignerCrc32Counter) != len(inputData)*8 {
+			t.Errorf("not enough hash-func calls")
+		}
+	*/
 }
