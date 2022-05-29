@@ -57,45 +57,42 @@ var SingleHash = func(in, out chan interface{}) {
 }
 
 var MultiHash = func(in, out chan interface{}) {
-
-	//wg := &sync.WaitGroup{}
-	//var df string
-	//var result []string
-	result := make([]string, 6)
+	hashesDate := make([]string, 6)
+	wg := &sync.WaitGroup{}
 	for i := range in {
-		//wg.Add(1)
-		//go func(i interface{}, wg *sync.WaitGroup, df string) {
-		//	defer wg.Done()
-		for th := 0; th <= 5; th++ {
-			t := DataSignerCrc32(fmt.Sprintf("%d%s", th, i))
-			//df += t
-			result = append(result, t)
-			fmt.Printf("%s MultiHash: crc32(th+step1)) %d %s\n", i, th, t)
-			t = ""
-		}
-		//fmt.Println(df)
-		//result = append(result, df)
-		//df = ""
-
-		//}(i, wg, df)
+		dt := i.(string)
+		wg.Add(1)
+		go func(dt string, wg *sync.WaitGroup) {
+			defer wg.Done()
+			hashWg := &sync.WaitGroup{}
+			for th := 0; th < 6; th++ {
+				hashWg.Add(1)
+				go func(th int, hashWg *sync.WaitGroup) {
+					defer hashWg.Done()
+					hashesDate[th] = DataSignerCrc32(fmt.Sprintf("%d%s", th, dt))
+				}(th, hashWg)
+			}
+			hashWg.Wait()
+			out <- strings.Join(hashesDate, "")
+		}(dt, wg)
 	}
-	//wg.Wait()
-	//l := strings.Join(df, "")
-	//fmt.Println("|", l, "|")
-	//fmt.Println(strings.Join(result, " "))
-	out <- strings.Join(result, "")
+	wg.Wait()
 }
 
 var CombineResults = func(in, out chan interface{}) {
-	//it := <-in
-	var df []string
-	for data := range in {
-		df = append(df, fmt.Sprintf("%v", data))
+	result := make([]string, 0, 5)
+	for d := range in {
+		result = append(result, d.(string))
 	}
-	sort.Strings(df)
-	fmt.Printf("%v\n", df)
-	//for i := range df {
-	//	fmt.Println(df[i])
+	sort.Strings(result)
+	results := strings.Join(result, "_")
+	fmt.Printf(results)
+	//out <- results
+	//results := make([]string, 0, 5)
+	//for data := range in {
+	//	results = append(results, data.(string))
 	//}
-	out <- strings.Join(df, "_")
+	//sort.Strings(results)
+	//result := strings.Join(results, "_")
+	//out <- result
 }
