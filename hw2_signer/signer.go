@@ -61,21 +61,21 @@ var MultiHash = func(in, out chan interface{}) {
 	for v := range in {
 		waitG.Add(1)
 		hashesDate := make([]string, 6)
-		go func(v interface{}, hashesDate []string) {
+		go func(v interface{}) {
 			defer waitG.Done()
 			for th := 0; th <= 5; th++ {
 				wg.Add(1)
-				go func(th int, data interface{}, hashesDate []string) {
+				go func(th int) {
 					defer wg.Done()
-					info := DataSignerCrc32(fmt.Sprintf("%d%s", th, data))
+					info := DataSignerCrc32(fmt.Sprintf("%d%s", th, v))
 					mu.Lock()
 					hashesDate[th] = info
 					mu.Unlock()
-				}(th, v, hashesDate)
+				}(th)
 			}
 			wg.Wait()
 			out <- strings.Join(hashesDate, "")
-		}(v, hashesDate)
+		}(v)
 	}
 	waitG.Wait()
 }
